@@ -21,7 +21,60 @@ canvas{width:100%;height:260px;border:1px solid #aab4bd;border-radius:8px;touch-
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body><div style="max-width:900px;margin:12px auto;padding:10px 14px;border-radius:10px;background:#eef7f1"><strong>📱 Paperless field workflow / ペーパーレス現場点検:</strong> Previous R7 drawings, previous photos, check marks, photo numbers, memos and colored annotations are handled on the phone/gadget. Printed inspection sheets are not required.</div>
+<body>
+ <!-- KUNUKI-SAN SUPERVISOR PIN GATE -->
+<div id="pinGate" style="
+position:fixed;
+inset:0;
+z-index:99999;
+background:#17202a;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px;
+">
+  <div style="
+  background:white;
+  width:100%;
+  max-width:390px;
+  padding:28px;
+  border-radius:16px;
+  text-align:center;
+  box-shadow:0 10px 35px rgba(0,0,0,.35);
+  ">
+    <h2 style="margin-top:0;">🌉 Giken Bridge Field Inspector</h2>
+
+    <p style="color:#555;">
+      Supervisor Authorization / 監督者認証
+    </p>
+
+    <h3>Kunuki-san / 九貫さん</h3>
+
+    <input
+      id="supervisorPin"
+      type="password"
+      inputmode="numeric"
+      maxlength="6"
+      pattern="[0-9]*"
+      placeholder="6-digit PIN"
+      style="font-size:24px;text-align:center;letter-spacing:8px;"
+    >
+
+    <button
+      type="button"
+      class="primary"
+      onclick="verifySupervisorPin()"
+      style="width:100%;margin-top:15px;padding:14px;"
+    >
+      Unlock / ロック解除
+    </button>
+
+    <div id="pinStatus"
+      style="margin-top:12px;font-weight:bold;">
+    </div>
+  </div>
+</div>
+ <body><div style="max-width:900px;margin:12px auto;padding:10px 14px;border-radius:10px;background:#eef7f1"><strong>📱 Paperless field workflow / ペーパーレス現場点検:</strong> Previous R7 drawings, previous photos, check marks, photo numbers, memos and colored annotations are handled on the phone/gadget. Printed inspection sheets are not required.</div>
 <header>
 <div style="display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap">
 <div style="display:flex;align-items:center;gap:12px;min-width:0">
@@ -573,11 +626,66 @@ function cloudSetR7Status(msg, ok){
   const el=document.getElementById('cloudR7Status');
   if(el){el.textContent=msg;el.style.color=ok===true?'#078b55':ok===false?'#c62036':'#17202a';}
 }
-function initCloud(){
+async function verifySupervisorPin(){
+  const pinInput = document.getElementById('supervisorPin');
+  const status = document.getElementById('pinStatus');
+  const pin = (pinInput?.value || '').trim();
+
+  if(!/^\d{6}$/.test(pin)){
+    status.textContent = 'Please enter the 6-digit PIN / 6桁のPINを入力してください';
+    status.style.color = '#c62036';
+    return;
+  }
+
+  status.textContent = 'Checking... / 確認中...';
+  status.style.color = '#555';
+
+  try{
+    if(!cloudClient){
+      initCloud();
+    }
+
+    if(!cloudClient){
+      status.textContent = 'Internet connection required / インターネット接続が必要です';
+      status.style.color = '#c62036';
+      return;
+    }
+
+    const {data, error} = await cloudClient.rpc(
+      'verify_supervisor_pin',
+      {entered_pin: pin}
+    );
+
+    if(error){
+      console.error(error);
+      status.textContent = 'Authorization error / 認証エラー';
+      status.style.color = '#c62036';
+      return;
+    }
+
+    if(data === true){
+      document.getElementById('pinGate').style.display = 'none';
+      sessionStorage.setItem('kunukiAuthorized','true');
+      pinInput.value = '';
+    }else{
+      status.textContent = 'Incorrect PIN / PINが正しくありません';
+      status.style.color = '#c62036';
+      pinInput.value = '';
+      pinInput.focus();
+    }
+
+  }catch(err){
+    console.error(err);
+    status.textContent = 'Connection error / 接続エラー';
+    status.style.color = '#c62036';
+  }
+}
+ function initCloud(){
   try{
     if(!window.supabase || !window.supabase.createClient){
       cloudSetStatus('Offline/local mode. Supabase library is unavailable until internet is connected.', null);
       return;
+}
     }
     cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     cloudClient.auth.getSession().then(({data,error})=>{
@@ -676,7 +784,11 @@ importR7 = async function(e){
   }catch(err){console.error('Cloud R7 sync',err);}
 };
 
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initCloud); else initCloud();
+if(sessionStorage.getItem('kunukiAuthorized') === 'true'){
+    const gate = document.getElementById('pinGate');
+    if(gate) gate.style.display = 'none';
+}
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initCloud); else initCloud();
 </script>
 
 </body></html>
