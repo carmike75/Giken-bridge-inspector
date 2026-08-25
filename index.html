@@ -688,19 +688,13 @@ async function verifySupervisorPin(){
       return;
     }
 
-    const {data,error}=await cloudClient.auth.signInWithPassword({
-      email:'torrescarmike@gmail.com',
-      password:pin
-    });
-
-    if(error || !data?.session){
-      console.error(error);
-      status.textContent='Incorrect PIN / PINが正しくありません';
-      status.style.color='#c62036';
-      pinInput.value='';
-      pinInput.focus();
-      return;
-    }
+  if(pin !== '996699'){
+  status.textContent='Incorrect PIN / PINが正しくありません';
+  status.style.color='#c62036';
+  pinInput.value='';
+  pinInput.focus();
+  return;
+}
 
     sessionStorage.setItem('managerAuthorized','true');
     pinInput.value='';
