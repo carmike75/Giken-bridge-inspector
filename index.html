@@ -356,7 +356,7 @@ function addInspectorName(){
 }
 function refreshInspectorLists(){
  const list=data.customInspectors||[];
- ['insp1','insp2'].forEach(id=>{
+['inspector','inspector2'].forEach(id=>{
   const sel=document.getElementById(id); if(!sel)return;
   list.forEach(name=>{if(![...sel.options].some(o=>o.value===name||o.text===name)){const o=document.createElement('option');o.value=name;o.text=name;sel.add(o)}})
  });
@@ -452,7 +452,7 @@ function download(t,n,type){let a=document.createElement("a");a.href=URL.createO
   });
 
   // Prevent disabled-looking selects caused by accidental state.
-  ["inspector1","inspector2"].forEach(function(id){
+ ["inspector","inspector2"].forEach(function(id){
     const el=byId(id); if(el){el.disabled=false; el.style.pointerEvents="auto";}
   });
 })();
